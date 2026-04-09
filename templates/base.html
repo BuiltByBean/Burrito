@@ -149,12 +149,23 @@
                 </div>
             </a>
 
-            <button @click="darkMode = !darkMode"
-                    class="shrink-0 w-9 h-9 rounded-lg border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 transition-colors grid place-items-center"
-                    aria-label="Toggle dark mode">
-                <svg x-show="!darkMode" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                <svg x-show="darkMode" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.485-8.485h-1M4.515 12h-1m14.142-6.364l-.707.707M6.05 17.95l-.707.707m12.728 0l-.707-.707M6.05 6.05l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            </button>
+            <div class="shrink-0 flex items-center gap-2">
+                <a href="{{ url_for('orders_view') }}"
+                   class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 transition-colors text-xs font-bold uppercase tracking-wider"
+                   aria-label="Kitchen dashboard — view orders">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+                    </svg>
+                    <span class="hidden sm:inline">Kitchen</span>
+                </a>
+                <button @click="darkMode = !darkMode"
+                        class="w-9 h-9 rounded-lg border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 transition-colors grid place-items-center"
+                        aria-label="Toggle dark mode">
+                    <svg x-show="!darkMode" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    <svg x-show="darkMode" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.485-8.485h-1M4.515 12h-1m14.142-6.364l-.707.707M6.05 17.95l-.707.707m12.728 0l-.707-.707M6.05 6.05l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </button>
+            </div>
         </div>
     </header>
 
