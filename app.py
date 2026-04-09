@@ -236,6 +236,26 @@ def get_order(order_id):
     return None
 
 
+def delete_order(order_id):
+    """Delete an order by id. Returns True if a row was removed."""
+    if USE_DB:
+        with _get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM orders WHERE id = %s", (order_id,))
+                deleted = cur.rowcount
+            conn.commit()
+            return deleted > 0
+    # File backend
+    orders = load_orders()
+    before = len(orders)
+    orders = [o for o in orders if o.get('id') != order_id]
+    if len(orders) == before:
+        return False
+    with open(ORDERS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(orders, f, indent=2)
+    return True
+
+
 # D&D-style stat bonuses for each ingredient.
 # Format: ingredient -> list of (stat, bonus, flavor reason)
 STAT_BONUSES = {
@@ -386,6 +406,12 @@ def orders_view():
     return render_template(
         'orders.html', orders=orders, menu=MENU, tally=tally
     )
+
+
+@app.route('/orders/<int:order_id>/delete', methods=['POST'])
+def delete_order_route(order_id):
+    delete_order(order_id)
+    return redirect(url_for('orders_view'))
 
 
 # Initialise the schema on import so gunicorn workers boot with the table ready.

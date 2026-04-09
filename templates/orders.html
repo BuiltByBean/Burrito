@@ -81,6 +81,18 @@
             </div>
             {% endif %}
         </dl>
+        <form method="post"
+              action="{{ url_for('delete_order_route', order_id=order.id) }}"
+              onsubmit="return confirm('Banish {{ order.name|e }}\u0027s order from the realm? This cannot be undone.');"
+              class="mt-4 pt-3 border-t border-dashed border-surface-200 dark:border-surface-800 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-surface-500 dark:text-surface-500 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Banish order
+            </button>
+        </form>
     </div>
     {% endfor %}
 </div>
