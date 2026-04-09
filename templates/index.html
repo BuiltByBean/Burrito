@@ -18,7 +18,16 @@
         <div class="flex flex-col sm:flex-row sm:items-center gap-4">
             <div class="flex-1">
                 <h2 class="font-display font-bold text-xl sm:text-2xl flex items-center gap-2">
-                    <span x-ref="diceIcon" class="inline-block" :class="{ 'animate-dice-roll': rolling }">&#x1F3B2;</span>
+                    <svg class="w-7 h-7 inline-block" :class="{ 'animate-dice-roll': rolling }"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
+                         aria-hidden="true">
+                        <path d="M12 2 L21 7.5 L21 16.5 L12 22 L3 16.5 L3 7.5 Z"/>
+                        <path d="M3 7.5 L21 7.5"/>
+                        <path d="M3 7.5 L12 22"/>
+                        <path d="M21 7.5 L12 22"/>
+                        <path d="M12 2 L12 7.5"/>
+                    </svg>
                     Feeling lucky?
                 </h2>
                 <p class="text-sm text-brand-50/90 mt-1">
