@@ -10,38 +10,67 @@ ORDERS_FILE = os.environ.get(
     os.path.join(os.path.dirname(__file__), 'orders.json'),
 )
 
-# Menu sections — order matters, this is the flow guests walk through
+# Menu sections — order matters, this is the flow guests walk through.
+# Breakfast burrito edition.
 MENU = [
     {
         'key': 'base',
         'title': 'Choose Your Vessel',
         'subtitle': 'The foundation of your feast',
+        'emoji': '\U0001F32F',  # burrito
         'type': 'single',
         'required': True,
         'options': [
             'Flour Tortilla (Burrito)',
             'Burrito Bowl (No Tortilla)',
-            'Crispy Tacos',
-            'Soft Tacos',
-            'Quesadilla',
         ],
     },
     {
-        'key': 'rice',
-        'title': 'Rice',
-        'subtitle': 'Grains of glory',
+        'key': 'eggs',
+        'title': 'Eggs',
+        'subtitle': 'The first rule of breakfast burritos',
+        'emoji': '\U0001F373',  # fried egg
+        'type': 'single',
+        'required': True,
+        'options': [
+            'Scrambled',
+            'Over Easy',
+            'No Eggs',
+        ],
+    },
+    {
+        'key': 'protein',
+        'title': 'Meat',
+        'subtitle': 'Pick your fighter — multi-select welcome',
+        'emoji': '\U0001F953',  # bacon
+        'type': 'multiple',
+        'required': False,
+        'options': [
+            'Bacon',
+            'Breakfast Sausage',
+            'Chorizo',
+            'Ham',
+            'No Meat',
+        ],
+    },
+    {
+        'key': 'potatoes',
+        'title': 'Potatoes',
+        'subtitle': 'Crispy carbs of champions',
+        'emoji': '\U0001F954',  # potato
         'type': 'single',
         'required': False,
         'options': [
-            'White Cilantro-Lime Rice',
-            'Brown Cilantro-Lime Rice',
-            'No Rice',
+            'Crispy Home Fries',
+            'Hash Browns',
+            'No Potatoes',
         ],
     },
     {
         'key': 'beans',
         'title': 'Beans',
         'subtitle': "Bean's beans (obviously)",
+        'emoji': '\U0001FAD8',  # beans
         'type': 'single',
         'required': False,
         'options': [
@@ -52,24 +81,10 @@ MENU = [
         ],
     },
     {
-        'key': 'protein',
-        'title': 'Protein',
-        'subtitle': 'Pick your fighter (multi-select okay, meat lovers welcome)',
-        'type': 'multiple',
-        'required': True,
-        'options': [
-            'Grilled Chicken',
-            'Steak',
-            'Carnitas (Pulled Pork)',
-            'Barbacoa (Shredded Beef)',
-            'Sofritas (Spicy Tofu)',
-            'No Meat',
-        ],
-    },
-    {
         'key': 'veggies',
         'title': 'Fajita Veggies',
         'subtitle': 'Grilled peppers & onions',
+        'emoji': '\U0001FAD1',  # bell pepper
         'type': 'single',
         'required': False,
         'options': ['Yes, add veggies', 'No veggies'],
@@ -78,6 +93,7 @@ MENU = [
         'key': 'salsa',
         'title': 'Salsas',
         'subtitle': 'Choose your spice level — pick as many as you dare',
+        'emoji': '\U0001F336',  # hot pepper
         'type': 'multiple',
         'required': False,
         'options': [
@@ -91,7 +107,8 @@ MENU = [
     {
         'key': 'cheese',
         'title': 'Cheese',
-        'subtitle': '',
+        'subtitle': 'Melty or shredded, the people decide',
+        'emoji': '\U0001F9C0',  # cheese wedge
         'type': 'single',
         'required': False,
         'options': [
@@ -105,10 +122,10 @@ MENU = [
         'key': 'toppings',
         'title': 'Toppings',
         'subtitle': 'The finishing touches',
+        'emoji': '\U0001F951',  # avocado
         'type': 'multiple',
         'required': False,
         'options': [
-            'Lettuce',
             'Sour Cream',
             'Guacamole',
             'Jalapeños',
@@ -116,28 +133,16 @@ MENU = [
         ],
     },
     {
-        'key': 'sides',
-        'title': 'Sides',
-        'subtitle': 'Because one burrito is never enough',
-        'type': 'multiple',
-        'required': False,
-        'options': [
-            'Tortilla Chips',
-            'Chips & Guac',
-            'Chips & Salsa',
-            'No Sides',
-        ],
-    },
-    {
         'key': 'drink',
         'title': 'Drink',
         'subtitle': 'Quench thy thirst, adventurer',
+        'emoji': '\u2615',  # hot beverage
         'type': 'single',
         'required': False,
         'options': [
+            'Coffee',
+            'Orange Juice',
             'Water',
-            'Soda',
-            'Beer',
             'Bringing my own',
         ],
     },
