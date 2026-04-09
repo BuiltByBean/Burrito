@@ -1,29 +1,122 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="h-full" x-data="{ darkMode: localStorage.getItem('darkMode') !== 'false' }" x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))" :class="{ 'dark': darkMode }">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Bean's Burritos{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cinzel:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        display: ['Cinzel', 'Georgia', 'serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50:  '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                            950: '#431407',
+                        },
+                        surface: {
+                            50:  '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            400: '#a8a29e',
+                            500: '#78716c',
+                            600: '#57534e',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917',
+                            950: '#0c0a09',
+                        },
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                        'dice-roll': 'diceRoll 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                    },
+                    keyframes: {
+                        fadeIn:   { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp:  { '0%': { opacity: '0', transform: 'translateY(10px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        diceRoll: {
+                            '0%':   { transform: 'rotate(0deg) scale(1)' },
+                            '25%':  { transform: 'rotate(-20deg) scale(1.1)' },
+                            '50%':  { transform: 'rotate(360deg) scale(1.2)' },
+                            '75%':  { transform: 'rotate(340deg) scale(1.05)' },
+                            '100%': { transform: 'rotate(360deg) scale(1)' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+
+        html:not(.dark) body {
+            background-image:
+                radial-gradient(at 0% 0%, rgba(251, 146, 60, 0.18) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(234, 88, 12, 0.10) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(253, 186, 116, 0.12) 0px, transparent 55%);
+        }
+        html.dark body {
+            background-image:
+                radial-gradient(at 0% 0%, rgba(234, 88, 12, 0.18) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(124, 45, 18, 0.25) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(249, 115, 22, 0.08) 0px, transparent 55%);
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #44403c; }
+    </style>
 </head>
-<body>
-    <header class="site-header">
-        <a class="brand" href="{{ url_for('index') }}">
-            <span class="brand-icon">&#x1F32F;</span>
-            <span class="brand-name">Bean's Burritos</span>
-        </a>
-        <p class="brand-tag">Roll initiative. Then roll your burrito.</p>
+<body class="min-h-full font-sans antialiased bg-surface-50 text-surface-900 dark:bg-surface-950 dark:text-surface-100 transition-colors">
+
+    <header class="border-b border-dashed border-surface-300 dark:border-surface-800">
+        <div class="max-w-3xl mx-auto px-5 pt-8 pb-5 flex items-start justify-between gap-4">
+            <div class="flex-1 text-center">
+                <a href="{{ url_for('index') }}" class="inline-flex items-center gap-2">
+                    <span class="text-4xl drop-shadow-sm">&#x1F32F;</span>
+                    <span class="font-display font-black text-3xl sm:text-4xl text-brand-700 dark:text-brand-400 tracking-wide">Bean's Burritos</span>
+                </a>
+                <p class="mt-1 italic text-sm text-surface-600 dark:text-surface-400">Roll initiative. Then roll your burrito.</p>
+            </div>
+            <button @click="darkMode = !darkMode"
+                    class="shrink-0 w-9 h-9 rounded-lg border border-surface-300 dark:border-surface-700 bg-white dark:bg-surface-900 text-surface-700 dark:text-surface-300 hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 transition-colors grid place-items-center"
+                    aria-label="Toggle dark mode">
+                <svg x-show="!darkMode" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                <svg x-show="darkMode" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.485-8.485h-1M4.515 12h-1m14.142-6.364l-.707.707M6.05 17.95l-.707.707m12.728 0l-.707-.707M6.05 6.05l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </button>
+        </div>
     </header>
 
-    <main class="container">
+    <main class="max-w-3xl mx-auto px-5 py-8">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="site-footer">
-        <p>Bean's Burritos &middot; A one-night-only pop-up for a D&amp;D day that will be talked about for edition cycles to come.</p>
+    <footer class="border-t border-dashed border-surface-300 dark:border-surface-800 mt-8">
+        <div class="max-w-3xl mx-auto px-5 py-6 text-center text-xs text-surface-500 dark:text-surface-500">
+            <p>Bean's Burritos &middot; A one-night-only pop-up for a D&amp;D day that will be talked about for edition cycles to come.</p>
+        </div>
     </footer>
+
 </body>
 </html>
