@@ -17,26 +17,23 @@
     <div class="rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-5 sm:p-6 shadow-lg shadow-brand-500/20 text-white">
         <div class="flex flex-col sm:flex-row sm:items-center gap-4">
             <div class="flex-1">
-                <h2 class="font-display font-bold text-xl sm:text-2xl flex items-center gap-2">
-                    <svg class="w-7 h-7 inline-block" :class="{ 'animate-dice-roll': rolling }"
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
-                         aria-hidden="true">
-                        <path d="M12 2 L21 7.5 L21 16.5 L12 22 L3 16.5 L3 7.5 Z"/>
-                        <path d="M3 7.5 L21 7.5"/>
-                        <path d="M3 7.5 L12 22"/>
-                        <path d="M21 7.5 L12 22"/>
-                        <path d="M12 2 L12 7.5"/>
-                    </svg>
-                    Feeling lucky?
-                </h2>
-                <p class="text-sm text-brand-50/90 mt-1">
+                <p class="text-sm text-brand-50/90">
                     Let the dice build your burrito. You can still tweak the selections after.
                 </p>
             </div>
             <button type="button"
                     @click="rollBurrito()"
-                    class="shrink-0 px-5 py-3 rounded-xl bg-white text-brand-700 font-bold text-sm uppercase tracking-wide hover:bg-brand-50 active:scale-95 transition-all shadow-md">
+                    class="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-brand-700 font-bold text-sm uppercase tracking-wide hover:bg-brand-50 active:scale-95 transition-all shadow-md">
+                <svg class="w-5 h-5" :class="{ 'animate-dice-roll': rolling }"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                    <path d="M12 2 L21 7.5 L21 16.5 L12 22 L3 16.5 L3 7.5 Z"/>
+                    <path d="M3 7.5 L21 7.5"/>
+                    <path d="M3 7.5 L12 22"/>
+                    <path d="M21 7.5 L12 22"/>
+                    <path d="M12 2 L12 7.5"/>
+                </svg>
                 Roll for Burrito
             </button>
         </div>
