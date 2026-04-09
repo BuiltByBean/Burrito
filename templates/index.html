@@ -6,7 +6,7 @@
 <form action="{{ url_for('submit') }}" method="post"
       x-data="burritoWizard({{ menu | length }})"
       x-init="init()"
-      @change="tick++"
+      @change="tick++; handleExclusivity($event); triggerWizard($event)"
       class="relative">
 
     <!-- Progress bar -->
@@ -34,7 +34,7 @@
              class="text-center">
             <div class="text-8xl mb-4 drop-shadow-lg">&#x1F9D9;</div>
             <h2 class="font-display font-black text-3xl sm:text-4xl text-surface-900 dark:text-surface-50 mb-2">Name thyself, adventurer</h2>
-            <p class="text-surface-600 dark:text-surface-400 mb-6">So Bean knows whose burrito is whose.</p>
+            <p class="text-surface-600 dark:text-surface-400 mb-6">The campaign begins. So Bean knows whose burrito is whose.</p>
             <input type="text" id="name" name="name" maxlength="60"
                    placeholder="e.g. Sir Guac-a-lot"
                    @input="name = $event.target.value"
@@ -54,7 +54,7 @@
                     </svg>
                     Roll for Burrito
                 </button>
-                <p class="text-xs text-surface-500 dark:text-surface-500 mt-2">Let the dice build it for you — skip straight to review.</p>
+                <p class="text-xs text-surface-500 dark:text-surface-500 mt-2">Let the dice build it for you &mdash; skip straight to review.</p>
             </div>
         </div>
 
@@ -95,17 +95,17 @@
             <div class="text-center mb-6">
                 <div class="text-8xl mb-3 drop-shadow-lg">&#x1F4DC;</div>
                 <h2 class="font-display font-black text-3xl sm:text-4xl text-surface-900 dark:text-surface-50">Your Burrito Scroll</h2>
-                <p class="mt-1 text-surface-600 dark:text-surface-400">Review your selections and lock it in.</p>
+                <p class="mt-1 text-surface-600 dark:text-surface-400">Review thy selections and lock it in.</p>
             </div>
 
             <div class="rounded-2xl border-2 border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-6 shadow-sm max-w-2xl mx-auto mb-4">
                 <dl class="divide-y divide-dashed divide-surface-200 dark:divide-surface-800">
-                    <div class="grid grid-cols-3 gap-4 py-2.5">
+                    <div class="grid grid-cols-3 gap-4 py-2.5" x-show="name">
                         <dt class="text-xs font-bold uppercase tracking-wide text-surface-500 dark:text-surface-400">Name</dt>
-                        <dd class="col-span-2 text-sm text-surface-900 dark:text-surface-100" x-text="name || '—'"></dd>
+                        <dd class="col-span-2 text-sm text-surface-900 dark:text-surface-100" x-text="name"></dd>
                     </div>
                     {% for section in menu %}
-                    <div class="grid grid-cols-3 gap-4 py-2.5">
+                    <div class="grid grid-cols-3 gap-4 py-2.5" x-show="(tick, hasValue('{{ section.key }}'))">
                         <dt class="text-xs font-bold uppercase tracking-wide text-surface-500 dark:text-surface-400">{{ section.title }}</dt>
                         <dd class="col-span-2 text-sm text-surface-900 dark:text-surface-100" x-text="(tick, summarize('{{ section.key }}'))"></dd>
                     </div>
@@ -147,6 +147,21 @@
         </button>
     </div>
 
+    <!-- Wizard popup — drops in from top-right when trigger options are picked -->
+    <div class="fixed top-6 right-6 left-6 sm:left-auto sm:max-w-sm z-50 pointer-events-none transition-all duration-500 ease-out"
+         :class="wizardPopup.visible ? 'opacity-100 translate-y-0 translate-x-0' : 'opacity-0 -translate-y-8 sm:translate-x-8'">
+        <div class="relative bg-white dark:bg-surface-900 border-2 border-brand-500 rounded-2xl p-4 shadow-2xl shadow-brand-500/30">
+            <div class="flex items-start gap-3">
+                <div class="text-5xl drop-shadow">&#x1F9D9;&#x200D;&#x2642;&#xFE0F;</div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-[10px] font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-0.5">The Wizard speaks</div>
+                    <p class="font-display italic text-base text-surface-800 dark:text-surface-100 leading-snug" x-text="wizardPopup.text"></p>
+                </div>
+            </div>
+            <div class="absolute -top-[10px] right-10 w-4 h-4 bg-white dark:bg-surface-900 border-t-2 border-l-2 border-brand-500 rotate-45"></div>
+        </div>
+    </div>
+
 </form>
 
 <script>
@@ -158,10 +173,33 @@
             rolling: false,
             shaking: false,
             name: '',
-            tick: 0,  // reactive bump for summarize() re-reads
+            tick: 0,
+
+            // Wizard popup state
+            wizardPopup: { visible: false, text: '' },
+            shownQuotes: new Set(),
+            suppressWizard: false,
+            _wizardTimer: null,
+
+            wizardQuotes: {
+                'Jalapeños': 'So you have chosen death...',
+                'No Meat': 'A druid walks among us. The beasts rejoice.',
+                'Burrito Bowl (No Tortilla)': "A paladin's choice. No wrappings, only discipline.",
+                'Pepper Jack': 'The cheese of kings and dragons.',
+                'Cheddar': 'A loyal choice. Sharp and unyielding.',
+                'Seared Burrito': 'Fire-forged and battle-hardened. Respect.',
+                'Just Wrapped in a Fresh Tortilla': 'Pristine and unsullied, as the elves prefer.',
+                'Chorizo': 'A spicy warrior rises from the embers.',
+                'Bacon': 'The pig gives its life for your glory.',
+                'Ham': 'Classic. Simple. Honorable.',
+                'Breakfast Sausage': 'The bards will sing of this choice.',
+                'No Eggs': 'A bold path, adventurer. Eggless, fearless.',
+                'No Potatoes': 'Truly you walk a difficult road.',
+                'Bell Pepper': "The humble bell. A tactician's choice.",
+                'Onion': 'Layers upon layers, like a true strategist.',
+            },
 
             init() {
-                // Pull name out of DOM on init in case of form repopulation
                 const n = document.getElementById('name');
                 if (n) this.name = n.value;
             },
@@ -170,8 +208,43 @@
                 return (this.currentStep / (this.totalSteps - 1)) * 100;
             },
 
+            handleExclusivity(event) {
+                const input = event.target;
+                if (!input || input.tagName !== 'INPUT') return;
+                if (input.type !== 'checkbox') return;
+                if (!input.checked) return;
+
+                const name = input.name;
+                const isNoOption = /^no\s/i.test(input.value);
+                const siblings = document.querySelectorAll(`input[name="${name}"]`);
+
+                if (isNoOption) {
+                    // "No X" wipes all others
+                    siblings.forEach(i => { if (i !== input) i.checked = false; });
+                } else {
+                    // Picking a real option wipes any "No X"
+                    siblings.forEach(i => { if (/^no\s/i.test(i.value)) i.checked = false; });
+                }
+                this.tick++;
+            },
+
+            triggerWizard(event) {
+                if (this.suppressWizard) return;
+                const input = event.target;
+                if (!input || input.tagName !== 'INPUT') return;
+                if (!input.checked) return;
+
+                const quote = this.wizardQuotes[input.value];
+                if (!quote) return;
+                if (this.shownQuotes.has(input.value)) return;
+
+                this.shownQuotes.add(input.value);
+                this.wizardPopup = { visible: true, text: quote };
+                if (this._wizardTimer) clearTimeout(this._wizardTimer);
+                this._wizardTimer = setTimeout(() => { this.wizardPopup.visible = false; }, 4500);
+            },
+
             next() {
-                // Validate current step
                 if (this.currentStep === 0) {
                     const n = document.getElementById('name');
                     if (!n.value.trim()) { this.shake(); n.focus(); return; }
@@ -207,8 +280,13 @@
                 return Array.from(inputs).map(i => i.value).join(', ');
             },
 
+            hasValue(key) {
+                return document.querySelectorAll(`input[name="${key}"]:checked`).length > 0;
+            },
+
             rollBurrito() {
                 this.rolling = true;
+                this.suppressWizard = true;
                 setTimeout(() => { this.rolling = false; }, 600);
 
                 document.querySelectorAll('[data-key]').forEach(section => {
@@ -234,7 +312,6 @@
                     }
                 });
 
-                // Auto-name if empty
                 const nameInput = document.getElementById('name');
                 if (nameInput && !nameInput.value.trim()) {
                     const titles = ['Sir', 'Lady', 'Captain', 'The Bold', 'Grand Master', 'Lord', 'Squire'];
@@ -244,6 +321,9 @@
                 }
 
                 this.tick++;
+
+                // Re-enable wizard popups after the roll settles
+                setTimeout(() => { this.suppressWizard = false; }, 800);
 
                 // Jump to review
                 setTimeout(() => {

@@ -33,8 +33,7 @@ MENU = [
         'type': 'single',
         'required': True,
         'options': [
-            'Scrambled',
-            'Over Easy',
+            'Eggs',
             'No Eggs',
         ],
     },
@@ -61,89 +60,45 @@ MENU = [
         'type': 'single',
         'required': False,
         'options': [
-            'Crispy Home Fries',
-            'Hash Browns',
+            'Potatoes',
             'No Potatoes',
         ],
     },
     {
-        'key': 'beans',
-        'title': 'Beans',
-        'subtitle': "Bean's beans (obviously)",
-        'emoji': '\U0001FAD8',  # beans
-        'type': 'single',
-        'required': False,
-        'options': [
-            'Black Beans',
-            'Pinto Beans',
-            'Refried Beans',
-            'No Beans',
-        ],
-    },
-    {
-        'key': 'veggies',
-        'title': 'Fajita Veggies',
-        'subtitle': 'Grilled peppers & onions',
+        'key': 'grilled_veggies',
+        'title': 'Grilled Veggies',
+        'subtitle': 'Fire-kissed and ready for battle',
         'emoji': '\U0001FAD1',  # bell pepper
-        'type': 'single',
-        'required': False,
-        'options': ['Yes, add veggies', 'No veggies'],
-    },
-    {
-        'key': 'salsa',
-        'title': 'Salsas',
-        'subtitle': 'Choose your spice level — pick as many as you dare',
-        'emoji': '\U0001F336',  # hot pepper
         'type': 'multiple',
         'required': False,
         'options': [
-            'Mild Pico de Gallo',
-            'Roasted Corn Salsa',
-            'Medium Tomatillo Green',
-            'Hot Red Chili',
-            'No Salsa',
+            'Jalapeños',
+            'Bell Pepper',
+            'Onion',
         ],
     },
     {
         'key': 'cheese',
         'title': 'Cheese',
-        'subtitle': 'Melty or shredded, the people decide',
+        'subtitle': 'Choose your sharpness',
         'emoji': '\U0001F9C0',  # cheese wedge
         'type': 'single',
         'required': False,
         'options': [
-            'Shredded Cheese',
-            'Queso Blanco (Melty)',
-            'Both!',
-            'No Cheese',
+            'Cheddar',
+            'Pepper Jack',
         ],
     },
     {
-        'key': 'toppings',
-        'title': 'Toppings',
-        'subtitle': 'The finishing touches',
-        'emoji': '\U0001F951',  # avocado
-        'type': 'multiple',
-        'required': False,
-        'options': [
-            'Sour Cream',
-            'Guacamole',
-            'Jalapeños',
-            'Cilantro',
-        ],
-    },
-    {
-        'key': 'drink',
-        'title': 'Drink',
-        'subtitle': 'Quench thy thirst, adventurer',
-        'emoji': '\u2615',  # hot beverage
+        'key': 'finish',
+        'title': 'The Final Touch',
+        'subtitle': 'How shall we send thee forth?',
+        'emoji': '\U0001F525',  # fire
         'type': 'single',
-        'required': False,
+        'required': True,
         'options': [
-            'Coffee',
-            'Orange Juice',
-            'Water',
-            'Bringing my own',
+            'Seared Burrito',
+            'Just Wrapped in a Fresh Tortilla',
         ],
     },
 ]
@@ -164,6 +119,77 @@ def save_orders(orders):
         json.dump(orders, f, indent=2)
 
 
+# D&D-style stat bonuses for each ingredient.
+# Format: ingredient -> list of (stat, bonus, flavor reason)
+STAT_BONUSES = {
+    # Vessel
+    'Flour Tortilla (Burrito)':       [('CON', 1, 'Wrapped in the armor of ancient grains')],
+    'Burrito Bowl (No Tortilla)':     [('DEX', 2, 'Lean and unencumbered by wrapping')],
+    # Eggs
+    'Eggs':                           [('WIS', 1, 'Balanced start to the journey')],
+    'No Eggs':                        [('CHA', 1, 'Boldly unconventional')],
+    # Meat
+    'Bacon':                          [('CHA', 1, 'Universal appeal of the pig')],
+    'Breakfast Sausage':              [('CON', 1, "The bards' breakfast classic")],
+    'Chorizo':                        [('STR', 2, 'Fire-born warrior spice')],
+    'Ham':                            [('STR', 1, 'Simple, honorable power')],
+    'No Meat':                        [('WIS', 2, 'A druid walks among us')],
+    # Potatoes
+    'Potatoes':                       [('CON', 2, 'Hearty carbs of the realm')],
+    'No Potatoes':                    [('DEX', 1, 'Unburdened by tubers')],
+    # Grilled Veggies
+    'Jalapeños':                      [('CON', 2, 'Forged in the fires of Mt. Doom')],
+    'Bell Pepper':                    [('DEX', 1, 'Quick-striking crunch')],
+    'Onion':                          [('INT', 1, 'Layers within layers, like a true strategist')],
+    # Cheese
+    'Cheddar':                        [('CON', 1, 'Sharp and unyielding')],
+    'Pepper Jack':                    [('CHA', 2, 'The cheese of kings and dragons')],
+    # Finish
+    'Seared Burrito':                 [('STR', 2, 'Battle-hardened exterior')],
+    'Just Wrapped in a Fresh Tortilla':[('DEX', 1, 'Pristine and agile')],
+}
+
+# Highest-stat -> D&D class mapping for the character sheet flavor
+CLASS_BY_STAT = {
+    'STR': ('Breakfast Barbarian',  'Raw tortilla-shredding power'),
+    'DEX': ('Tortilla Rogue',       'Agile, nimble, sauce-silent'),
+    'CON': ('Hash-Brown Paladin',   'A bulwark of fiber and fat'),
+    'INT': ('Onion Wizard',         'Layered, scholarly, tear-inducing'),
+    'WIS': ('Druid of the Feast',   'One with the crops and herds'),
+    'CHA': ('Queso Bard',           'Silver-tongued and melty'),
+}
+
+
+def compute_stats(selections):
+    """Compute D&D-style stats from a burrito's selections.
+    Returns (stats_dict, applied_bonuses_list, class_tuple).
+    """
+    stats = {'STR': 10, 'DEX': 10, 'CON': 10, 'INT': 10, 'WIS': 10, 'CHA': 10}
+    applied = []
+    for _, val in selections.items():
+        if not val:
+            continue
+        items = val if isinstance(val, list) else [val]
+        for item in items:
+            for stat, bonus, reason in STAT_BONUSES.get(item, []):
+                stats[stat] += bonus
+                applied.append({
+                    'stat':   stat,
+                    'bonus':  bonus,
+                    'reason': reason,
+                    'source': item,
+                })
+    # Determine class from the highest stat (stable tie-breaker)
+    stat_order = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
+    top_stat = max(stat_order, key=lambda s: (stats[s], -stat_order.index(s)))
+    class_name, class_blurb = CLASS_BY_STAT[top_stat]
+    return stats, applied, {'stat': top_stat, 'name': class_name, 'blurb': class_blurb}
+
+
+def stat_modifier(score):
+    return (score - 10) // 2
+
+
 @app.route('/')
 def index():
     return render_template('index.html', menu=MENU)
@@ -179,10 +205,10 @@ def submit():
         key = section['key']
         if section['type'] == 'single':
             val = request.form.get(key, '').strip()
-            selections[key] = val or '—'
+            selections[key] = val or None
         else:
             vals = [v for v in request.form.getlist(key) if v]
-            selections[key] = vals or ['—']
+            selections[key] = vals
 
     order = {
         'name': name,
@@ -204,8 +230,17 @@ def confirmation(order_id):
     if order_id < 1 or order_id > len(orders):
         return redirect(url_for('index'))
     order = orders[order_id - 1]
+    stats, applied, char_class = compute_stats(order['selections'])
+    modifiers = {k: stat_modifier(v) for k, v in stats.items()}
     return render_template(
-        'confirmation.html', order=order, order_id=order_id, menu=MENU
+        'confirmation.html',
+        order=order,
+        order_id=order_id,
+        menu=MENU,
+        stats=stats,
+        modifiers=modifiers,
+        applied=applied,
+        char_class=char_class,
     )
 
 
