@@ -3,7 +3,18 @@ import json
 import os
 from datetime import datetime
 
+try:
+    import psycopg2
+    import psycopg2.extras
+    HAS_PSYCOPG2 = True
+except ImportError:
+    HAS_PSYCOPG2 = False
+
 app = Flask(__name__)
+
+# Storage backend: Postgres if DATABASE_URL is set (Railway), JSON file otherwise.
+DATABASE_URL = os.environ.get('DATABASE_URL')
+USE_DB = bool(DATABASE_URL) and HAS_PSYCOPG2
 
 ORDERS_FILE = os.environ.get(
     'ORDERS_FILE',
@@ -104,19 +115,125 @@ MENU = [
 ]
 
 
+# --------------------------------------------------------------------------- #
+# Storage layer — Postgres on Railway, JSON file locally
+# --------------------------------------------------------------------------- #
+
+def _normalise_db_url(url):
+    # Railway sometimes hands out postgres:// which psycopg2 + SQLAlchemy
+    # expect as postgresql://. psycopg2 itself accepts both, but normalise
+    # for safety.
+    if url and url.startswith('postgres://'):
+        return url.replace('postgres://', 'postgresql://', 1)
+    return url
+
+
+def _get_db_conn():
+    return psycopg2.connect(
+        _normalise_db_url(DATABASE_URL),
+        cursor_factory=psycopg2.extras.RealDictCursor,
+    )
+
+
+def init_db():
+    """Create the orders table if it doesn't exist. Safe to call repeatedly."""
+    if not USE_DB:
+        return
+    with _get_db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS orders (
+                    id          SERIAL PRIMARY KEY,
+                    name        TEXT NOT NULL,
+                    notes       TEXT NOT NULL DEFAULT '',
+                    selections  JSONB NOT NULL,
+                    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+            """)
+        conn.commit()
+
+
+def _row_to_order(row):
+    return {
+        'id':         row['id'],
+        'name':       row['name'],
+        'notes':      row['notes'] or '',
+        'selections': row['selections'] or {},
+        'timestamp':  row['created_at'].isoformat(timespec='seconds') if row['created_at'] else '',
+    }
+
+
 def load_orders():
+    """Return all orders, oldest first."""
+    if USE_DB:
+        with _get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, name, notes, selections, created_at "
+                    "FROM orders ORDER BY id ASC"
+                )
+                return [_row_to_order(r) for r in cur.fetchall()]
+    # File backend
     if os.path.exists(ORDERS_FILE):
         try:
             with open(ORDERS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                orders = json.load(f)
+                # Backfill an id from list position so the rest of the app can
+                # treat both backends the same way.
+                for idx, o in enumerate(orders, start=1):
+                    o.setdefault('id', idx)
+                return orders
         except json.JSONDecodeError:
             return []
     return []
 
 
-def save_orders(orders):
+def append_order(order):
+    """Insert a new order and return its id."""
+    if USE_DB:
+        with _get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO orders (name, notes, selections)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        order['name'],
+                        order.get('notes', ''),
+                        psycopg2.extras.Json(order['selections']),
+                    ),
+                )
+                new_id = cur.fetchone()['id']
+            conn.commit()
+            return new_id
+    # File backend — preserve the existing JSON shape
+    orders = load_orders()
+    new_id = (max((o.get('id', 0) for o in orders), default=0) or len(orders)) + 1
+    order_with_id = {**order, 'id': new_id}
+    orders.append(order_with_id)
     with open(ORDERS_FILE, 'w', encoding='utf-8') as f:
         json.dump(orders, f, indent=2)
+    return new_id
+
+
+def get_order(order_id):
+    """Look up a single order by id, or None."""
+    if USE_DB:
+        with _get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, name, notes, selections, created_at "
+                    "FROM orders WHERE id = %s",
+                    (order_id,),
+                )
+                row = cur.fetchone()
+                return _row_to_order(row) if row else None
+    for o in load_orders():
+        if o.get('id') == order_id:
+            return o
+    return None
 
 
 # D&D-style stat bonuses for each ingredient.
@@ -217,19 +334,15 @@ def submit():
         'timestamp': datetime.now().isoformat(timespec='seconds'),
     }
 
-    orders = load_orders()
-    orders.append(order)
-    save_orders(orders)
-
-    return redirect(url_for('confirmation', order_id=len(orders)))
+    new_id = append_order(order)
+    return redirect(url_for('confirmation', order_id=new_id))
 
 
 @app.route('/confirmation/<int:order_id>')
 def confirmation(order_id):
-    orders = load_orders()
-    if order_id < 1 or order_id > len(orders):
+    order = get_order(order_id)
+    if order is None:
         return redirect(url_for('index'))
-    order = orders[order_id - 1]
     stats, applied, char_class = compute_stats(order['selections'])
     modifiers = {k: stat_modifier(v) for k, v in stats.items()}
     return render_template(
@@ -273,6 +386,10 @@ def orders_view():
     return render_template(
         'orders.html', orders=orders, menu=MENU, tally=tally
     )
+
+
+# Initialise the schema on import so gunicorn workers boot with the table ready.
+init_db()
 
 
 if __name__ == '__main__':
