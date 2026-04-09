@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Build Your Burrito &middot; Bean's Burritos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Build Your Burrito</h1>
+    <p class="hero-sub">
+        Welcome, adventurer. Bean is prepping for the feast and needs to know
+        exactly what to stuff in your tortilla. Walk the line, make your choices,
+        and your order will be ready by the time you arrive at the table.
+    </p>
+</section>
+
+<form action="{{ url_for('submit') }}" method="post" class="builder-form">
+
+    <div class="card name-card">
+        <label for="name" class="card-title">Your Name</label>
+        <p class="card-sub">So Bean knows whose burrito is whose.</p>
+        <input type="text" id="name" name="name" required
+               placeholder="e.g. Sir Guac-a-lot" maxlength="60">
+    </div>
+
+    {% for section in menu %}
+    <div class="card section-card" data-type="{{ section.type }}" data-key="{{ section.key }}">
+        <div class="card-head">
+            <span class="step-num">{{ loop.index }}</span>
+            <div>
+                <h2 class="card-title">
+                    {{ section.title }}
+                    {% if section.required %}<span class="required">*</span>{% endif %}
+                </h2>
+                {% if section.subtitle %}
+                <p class="card-sub">{{ section.subtitle }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="options {% if section.type == 'multiple' %}multi{% else %}single{% endif %}">
+            {% for opt in section.options %}
+            <label class="option">
+                {% if section.type == 'single' %}
+                <input type="radio" name="{{ section.key }}" value="{{ opt }}"
+                       {% if section.required and loop.first %}required{% endif %}>
+                {% else %}
+                <input type="checkbox" name="{{ section.key }}" value="{{ opt }}">
+                {% endif %}
+                <span class="option-label">{{ opt }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="card notes-card">
+        <label for="notes" class="card-title">Special Requests</label>
+        <p class="card-sub">Allergies, extra guac, "light on the cilantro" — whatever Bean needs to know.</p>
+        <textarea id="notes" name="notes" rows="3"
+                  placeholder="Optional. Be nice."></textarea>
+    </div>
+
+    <button type="submit" class="submit-btn">
+        Roll for Burrito &#x1F3B2;
+    </button>
+</form>
+{% endblock %}

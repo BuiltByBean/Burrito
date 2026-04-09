@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Order #{{ order_id }} Locked In &middot; Bean's Burritos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Order Locked In &#x2694;&#xFE0F;</h1>
+    <p class="hero-sub">
+        Thanks, <strong>{{ order.name }}</strong>! Your burrito is #{{ order_id }} in the queue.
+        Bean has been notified and is already sharpening the knives.
+    </p>
+</section>
+
+<div class="card receipt">
+    <h2 class="card-title">Your Burrito Scroll</h2>
+    <dl class="receipt-list">
+        {% for section in menu %}
+        <div class="receipt-row">
+            <dt>{{ section.title }}</dt>
+            <dd>
+                {% set val = order.selections.get(section.key) %}
+                {% if val is string %}
+                    {{ val }}
+                {% else %}
+                    {{ val | join(', ') }}
+                {% endif %}
+            </dd>
+        </div>
+        {% endfor %}
+        {% if order.notes %}
+        <div class="receipt-row">
+            <dt>Notes</dt>
+            <dd>{{ order.notes }}</dd>
+        </div>
+        {% endif %}
+    </dl>
+
+    <a href="{{ url_for('index') }}" class="submit-btn secondary">
+        Build Another &#x2795;
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Kitchen Dashboard &middot; Bean's Burritos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Kitchen Dashboard</h1>
+    <p class="hero-sub">
+        {{ orders | length }} order{{ '' if orders|length == 1 else 's' }} in the queue.
+        Tally below tells you exactly how much of each ingredient to prep.
+    </p>
+</section>
+
+{% if orders %}
+<div class="card">
+    <h2 class="card-title">Prep Tally</h2>
+    <p class="card-sub">How many hands are going up for each ingredient.</p>
+    <div class="tally-grid">
+        {% for key, section in tally.items() %}
+        <div class="tally-section">
+            <h3>{{ section.title }}</h3>
+            <ul>
+                {% for opt, count in section.counts.items() %}
+                {% if count > 0 %}
+                <li>
+                    <span class="tally-opt">{{ opt }}</span>
+                    <span class="tally-count">{{ count }}</span>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<h2 class="section-heading">Individual Orders</h2>
+<div class="orders-grid">
+    {% for order in orders %}
+    <div class="card order-card">
+        <div class="order-head">
+            <h3>#{{ loop.index }} &middot; {{ order.name }}</h3>
+            <span class="order-time">{{ order.timestamp.split('T')[1] if 'T' in order.timestamp else order.timestamp }}</span>
+        </div>
+        <dl class="receipt-list compact">
+            {% for section in menu %}
+            <div class="receipt-row">
+                <dt>{{ section.title }}</dt>
+                <dd>
+                    {% set val = order.selections.get(section.key) %}
+                    {% if val is string %}
+                        {{ val }}
+                    {% else %}
+                        {{ val | join(', ') }}
+                    {% endif %}
+                </dd>
+            </div>
+            {% endfor %}
+            {% if order.notes %}
+            <div class="receipt-row notes-row">
+                <dt>Notes</dt>
+                <dd>{{ order.notes }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card empty-state">
+    <h2>No orders yet</h2>
+    <p>When your adventurers start building burritos, they'll show up here.</p>
+</div>
+{% endif %}
+{% endblock %}
