@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full"
-      x-data="{ darkMode: localStorage.getItem('darkMode') !== 'false', d20Face: 20 }"
-      x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val));
-              setInterval(() => { d20Face = Math.floor(Math.random() * 20) + 1; }, 1400)"
+      x-data="{ darkMode: localStorage.getItem('darkMode') !== 'false' }"
+      x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
       :class="{ 'dark': darkMode }">
 <head>
     <meta charset="UTF-8">
@@ -141,16 +140,9 @@
 
     <header class="border-b border-dashed border-surface-300 dark:border-surface-800">
         <div class="max-w-3xl mx-auto px-5 pt-6 pb-5 flex items-center justify-between gap-4">
-            <!-- Rolling d20 widget — real 3D via Three.js -->
+            <!-- Rolling d20 widget — real 3D via Three.js with numbers painted on every face -->
             <a href="{{ url_for('index') }}" class="shrink-0 flex items-center gap-3 group">
-                <div class="relative w-16 h-16 sm:w-20 sm:h-20">
-                    <div id="d20-canvas" class="absolute inset-0"></div>
-                    <!-- Face number pops into view each roll cycle, rendered over the WebGL canvas -->
-                    <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-display font-black text-base sm:text-lg text-white pointer-events-none animate-face-pop z-10"
-                          style="text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.6);"
-                          :key="d20Face"
-                          x-text="d20Face"></span>
-                </div>
+                <div id="d20-canvas" class="relative w-16 h-16 sm:w-20 sm:h-20"></div>
                 <div class="flex flex-col leading-tight">
                     <span class="font-display font-black text-2xl sm:text-3xl text-brand-700 dark:text-brand-400 tracking-wide group-hover:text-brand-600 transition-colors">Bean's Burritos</span>
                     <span class="italic text-xs text-surface-600 dark:text-surface-400">Roll initiative. Then roll your burrito.</span>
@@ -170,7 +162,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Three.js 3D d20 scene — initialises after the header container exists -->
+    <!-- Three.js 3D d20 scene — flat-lit numbered faces + roll/land/pause cycle -->
     <script>
         (function initD20Scene() {
             if (typeof THREE === 'undefined') return setTimeout(initD20Scene, 50);
@@ -180,53 +172,188 @@
             const height = container.clientHeight;
             if (!width || !height) return setTimeout(initD20Scene, 50);
 
-            const scene    = new THREE.Scene();
-            const camera   = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-            camera.position.z = 3.4;
-
-            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-            container.appendChild(renderer.domElement);
-
-            // Icosahedron (d20) geometry — detail 0 gives the 20 flat triangular faces
-            const geometry = new THREE.IcosahedronGeometry(1.2, 0);
-            const material = new THREE.MeshPhongMaterial({
-                color: 0xf97316,      // brand-500
-                flatShading: true,
-                shininess: 90,
-                specular: 0xffddaa,
-            });
-            const mesh = new THREE.Mesh(geometry, material);
-            scene.add(mesh);
-
-            // Dark edges to make every facet read clearly
-            const edges         = new THREE.EdgesGeometry(geometry);
-            const edgeMaterial  = new THREE.LineBasicMaterial({ color: 0x431407 }); // brand-950
-            const edgeLines     = new THREE.LineSegments(edges, edgeMaterial);
-            mesh.add(edgeLines);
-
-            // Lighting rig: key + warm fill + ambient
-            const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-            keyLight.position.set(3, 4, 5);
-            scene.add(keyLight);
-
-            const fillLight = new THREE.DirectionalLight(0xfdba74, 0.7); // brand-300
-            fillLight.position.set(-3, -2, -2);
-            scene.add(fillLight);
-
-            const ambient = new THREE.AmbientLight(0xffffff, 0.35);
-            scene.add(ambient);
-
-            // Continuous, slightly chaotic rotation so every face shows
-            function animate() {
-                requestAnimationFrame(animate);
-                mesh.rotation.x += 0.008;
-                mesh.rotation.y += 0.013;
-                mesh.rotation.z += 0.004;
-                renderer.render(scene, camera);
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(buildScene);
+            } else {
+                buildScene();
             }
-            animate();
+
+            // UV triangle placed inside the square texture. Each face samples this
+            // triangle, so the number is drawn at its centroid.
+            // Apex (0.5, 0.94) + base (0.09, 0.19) / (0.91, 0.19)
+            // Centroid: (0.5, (0.94 + 0.19 + 0.19) / 3) = (0.5, 0.44)
+            const UV_CENTROID_Y = (0.94 + 0.19 + 0.19) / 3;
+
+            function makeFaceTexture(num) {
+                const size = 256;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Flat brand-orange face (MeshBasicMaterial renders this as-is, no lighting wash)
+                ctx.fillStyle = '#ea580c'; // brand-600
+                ctx.fillRect(0, 0, size, size);
+
+                // Draw the number at the canvas position matching the UV triangle centroid.
+                // CanvasTexture flips Y by default, so canvas Y = size * (1 - uvY).
+                const cx = size / 2;
+                const cy = size * (1 - UV_CENTROID_Y);
+
+                ctx.font = '700 70px "Cinzel", Georgia, serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#431407'; // brand-950 — thin dark outline only
+                ctx.strokeText(String(num), cx, cy);
+                ctx.fillStyle = '#fff7ed'; // brand-50
+                ctx.fillText(String(num), cx, cy);
+
+                // Underline 6 and 9 (standard D&D die convention)
+                if (num === 6 || num === 9) {
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#fff7ed';
+                    ctx.beginPath();
+                    ctx.moveTo(cx - 16, cy + 26);
+                    ctx.lineTo(cx + 16, cy + 26);
+                    ctx.stroke();
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.anisotropy = 4;
+                return texture;
+            }
+
+            function buildScene() {
+                const scene    = new THREE.Scene();
+                const camera   = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+                camera.position.z = 3.4;
+
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+                container.appendChild(renderer.domElement);
+
+                const geometry = new THREE.IcosahedronGeometry(1.2, 0);
+
+                // Override UVs — each face's 3 vertices form an upward-pointing triangle
+                const uv = geometry.getAttribute('uv');
+                for (let i = 0; i < 20; i++) {
+                    uv.setXY(i * 3,     0.50, 0.94); // apex (vertex v0)
+                    uv.setXY(i * 3 + 1, 0.09, 0.19); // bottom-left  (v1)
+                    uv.setXY(i * 3 + 2, 0.91, 0.19); // bottom-right (v2)
+                }
+                uv.needsUpdate = true;
+
+                // Per-face material groups
+                geometry.clearGroups();
+                for (let i = 0; i < 20; i++) {
+                    geometry.addGroup(i * 3, 3, i);
+                }
+
+                // MeshBasicMaterial — ignores lights entirely, so all 20 faces render with
+                // the exact same brightness and every number is legible.
+                const materials = [];
+                for (let i = 1; i <= 20; i++) {
+                    materials.push(new THREE.MeshBasicMaterial({
+                        map: makeFaceTexture(i),
+                    }));
+                }
+
+                const mesh = new THREE.Mesh(geometry, materials);
+                scene.add(mesh);
+
+                // Dark edge lines so the 3D facets still read
+                const edges     = new THREE.EdgesGeometry(geometry);
+                const edgeLines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x431407 }));
+                mesh.add(edgeLines);
+
+                // Pre-compute a target quaternion for every face so we can snap the die
+                // so that face is square to the camera AND its number is upright.
+                const positions = geometry.getAttribute('position');
+                const faceTargets = [];
+                const upZ = new THREE.Vector3(0, 0, 1);
+                const upY = new THREE.Vector3(0, 1, 0);
+                for (let i = 0; i < 20; i++) {
+                    const v0 = new THREE.Vector3(positions.getX(i*3),     positions.getY(i*3),     positions.getZ(i*3));
+                    const v1 = new THREE.Vector3(positions.getX(i*3 + 1), positions.getY(i*3 + 1), positions.getZ(i*3 + 1));
+                    const v2 = new THREE.Vector3(positions.getX(i*3 + 2), positions.getY(i*3 + 2), positions.getZ(i*3 + 2));
+
+                    const normal = new THREE.Vector3().addVectors(v0, v1).add(v2).divideScalar(3).normalize();
+
+                    // Rotation 1: align this face's normal with +Z (straight at camera)
+                    const q1 = new THREE.Quaternion().setFromUnitVectors(normal, upZ);
+
+                    // Rotation 2: spin around +Z so v0 (the UV apex) ends up at the top (+Y)
+                    const v0Rotated = v0.clone().applyQuaternion(q1);
+                    const angle = Math.atan2(v0Rotated.x, v0Rotated.y);
+                    const q2 = new THREE.Quaternion().setFromAxisAngle(upZ, -angle);
+
+                    faceTargets.push(q2.multiply(q1));
+                }
+
+                // State machine: rolling (chaotic) → landing (slerp to target) → paused (hold)
+                const ROLL_MS   = 2000;
+                const LAND_MS   = 550;
+                const PAUSE_MS  = 1500;
+                let phase = 'rolling';
+                let phaseElapsed = 0;
+                let lastTs = performance.now();
+                let velX = 0, velY = 0, velZ = 0;
+
+                const fromQuat  = new THREE.Quaternion();
+                const toQuat    = new THREE.Quaternion();
+                const deltaQuat = new THREE.Quaternion();
+                const deltaEul  = new THREE.Euler();
+
+                function randomizeVelocity() {
+                    const sign = () => (Math.random() > 0.5 ? 1 : -1);
+                    velX = (0.025 + Math.random() * 0.025) * sign();
+                    velY = (0.030 + Math.random() * 0.030) * sign();
+                    velZ = (0.012 + Math.random() * 0.018) * sign();
+                }
+                randomizeVelocity();
+
+                const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+                function animate(now) {
+                    requestAnimationFrame(animate);
+                    const delta = Math.min(now - lastTs, 80);
+                    lastTs = now;
+                    phaseElapsed += delta;
+                    const frameFactor = delta / 16;
+
+                    if (phase === 'rolling') {
+                        deltaEul.set(velX * frameFactor, velY * frameFactor, velZ * frameFactor);
+                        deltaQuat.setFromEuler(deltaEul);
+                        mesh.quaternion.multiply(deltaQuat);
+
+                        if (phaseElapsed >= ROLL_MS) {
+                            phase = 'landing';
+                            phaseElapsed = 0;
+                            const faceIdx = Math.floor(Math.random() * 20);
+                            fromQuat.copy(mesh.quaternion);
+                            toQuat.copy(faceTargets[faceIdx]);
+                        }
+                    } else if (phase === 'landing') {
+                        const t = Math.min(phaseElapsed / LAND_MS, 1);
+                        mesh.quaternion.copy(fromQuat).slerp(toQuat, easeOut(t));
+                        if (t >= 1) {
+                            phase = 'paused';
+                            phaseElapsed = 0;
+                        }
+                    } else if (phase === 'paused') {
+                        if (phaseElapsed >= PAUSE_MS) {
+                            phase = 'rolling';
+                            phaseElapsed = 0;
+                            randomizeVelocity();
+                        }
+                    }
+
+                    renderer.render(scene, camera);
+                }
+                requestAnimationFrame(animate);
+            }
         })();
     </script>
 
